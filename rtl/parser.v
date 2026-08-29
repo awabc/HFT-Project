@@ -1,8 +1,7 @@
 
 module parser #(
 	parameter DATA_WIDTH = 512,
-	parameter BEAT_WIDTH = 64,
-	parameter QUANTITY_WIDTH = 24
+	parameter BEAT_WIDTH = 64
 )(
 	
 	input     i_clk,
@@ -20,7 +19,7 @@ module parser #(
 	
 	// Decoded event
 	output                  		o_event_valid,
-	output [QUANTITY_WIDTH-1:0] 	o_event_marker,
+	output [144:0] 					o_event_marker,
 	output [63:0]           		o_event_sequence, // MoldUDP64
 	
 	// Frame 
@@ -67,6 +66,8 @@ module parser #(
 	localparam ITCH_CANCEL 		= 8'h58;
 	localparam ITCH_DELETE		= 8'h44;
 	
+	localparam SIDE_BUY         = 8'h42;
+	
 	
 	// Extract a number of bytes from DATA_WIDTH bus and pack in big-endian order
 	function automatic [63:0] be_field(
@@ -85,6 +86,15 @@ module parser #(
 		end
 	endfunction
 	
+	// Clamp 32 bit quantity into 24 bits
+	function automatic [23:0] sat_qty(
+		input [31:0] v
+	);
+		begin
+			sat_qty = (|v[31:24]) ? 24'd1 : v[23:0];
+		end
+	endfunction
+	
 	
 	reg  [15:0] 			beat;
 	wire 					curr_beat0;
@@ -96,9 +106,11 @@ module parser #(
 	wire [15:0] 			udp_dport;
 	wire [15:0] 			mold_cnt;
 	wire [63:0] 			mold_seq;
+	reg  [63:0] 			mold_seq_d1;
 	wire [15:0] 			msg0_len;
 	
 	wire 					hdr_match;
+	reg 					hdr_match_d1;
 	
 	wire [7:0] 				m_type;
 	wire [15:0] 			m_locate;
@@ -109,6 +121,17 @@ module parser #(
 	wire [31:0] 			m_shr_ex;
 	
 	wire 					type_known;
+	
+	reg  					event_valid;
+	reg [144:0]				event_marker;
+	reg [63:0] 				event_sequence;
+	reg 					rx_hdr_hit;
+	reg 					rx_frame_bad;
+	reg						in_frame;
+	reg [31:0] 				stat_frames;
+	reg [31:0] 				stat_accepted;
+	reg [31:0] 				stat_dropped;
+	reg [31:0] 				stat_bad_fcs;
 	
 
 	// Track beat
@@ -156,7 +179,99 @@ module parser #(
 						|| (m_type == ITCH_CANCEL);
 						
 						
-						
+	//////////////////////////////////////////////////////////////////////////
+	//  Sequential logic
+	
+	always @ (posedge i_clk) begin
+		if (~i_rst_n) begin
+			beat 			<= 16'd0;
+			in_frame 		<= 1'b0;
+			hdr_match_d1 	<= 1'b0;
+			mold_seq_d1 	<= 1'b0;
+			event_valid 	<= 1'b0;
+			event_marker 	<= 145'd0;
+			event_sequence 	<= 64'd0;
+			rx_hdr_hit 		<= 1'b0;
+			rx_frame_bad 	<= 1'b0;
+			stat_frames 	<= 32'd0;
+			stat_accepted 	<= 32'd0;
+			stat_bad_fcs 	<= 32'd0;
+			stat_dropped 	<= 32'd0;
+		end else begin
+			
+			event_valid 	<= 1'b1;
+			rx_hdr_hit 		<= 1'b1;
+			rx_frame_bad 	<= 1'b1;
+			
+			if (i_data_valid) begin
+				
+				// count beats
+				if (i_last) begin
+					beat 	 <= 16'd0;
+					in_frame <= 1'b0;
+				end else begin
+					beat 	 <= beat + 1'b1;
+					in_frame <= 1'b1;
+				end
+				
+				// beat 0
+				if (curr_beat0) begin
+					
+					stat_frames  <= stat_frames + 1'b1;
+					hdr_match_d1 <= hdr_match;
+					rx_hdr_hit   <= hdr_match;
+					mold_seq_d1  <= mold_seq;
+					
+					if (hdr_match) begin
+						stat_accepted <= stat_accepted + 1'b1;
+					end else begin
+						stat_dropped  <= stat_dropped + 1'b1;
+					end
+				end
+				
+				// beat 1
+				if (curr_beat1 && hdr_match_d1 && type_known) begin
+					event_valid     <= 1'b1;
+					
+					// event_marker: [7:0] 		ITCH_*
+					//				 [23:8] 	stock locate
+					//               [87:24] 	order reference
+					// 				 [88]  		is_buy, valid for ITCH_ADD_ORDER
+					// 			     [112:89] 	added/executed/cancelled quantity of shares
+					// 				 [144:113] 	price, valid for ITCH_ADD_ORDER
+					event_marker 	<=  m_type | m_locate << 8 | m_ref << 24 | (m_side == SIDE_BUY) << 88
+									| ((m_type == ITCH_ADD_ORDER) ? sat_qty(m_shr_a) : (m_type == ITCH_DELETE) ? 24'd0 : sat_qty(m_shr_ex)) << 89
+									| ((m_type == ITCH_ADD_ORDER) ? m_price : 32'd0) << 113;
+					
+					event_sequence  <= mold_seq_d1;
+				end
+				
+				if (i_last) begin
+					hdr_match_d1 	 <= 1'b0;
+					
+					if (i_error) begin
+						rx_frame_bad <= 1'b1;
+						stat_bad_fcs <= stat_bad_fcs + 1'b1;
+					end
+				end
+			end
+		end
+	end
+	
+	
+	
+	// Assign outputs
+	assign o_event_valid 	= event_valid;
+	assign o_event_marker 	= event_marker;
+	assign o_event_sequence = event_sequence;
+	
+	assign o_rx_hdr_hit 	= rx_hdr_hit;
+	assign o_rx_frame_bad 	= rx_frame_bad;
+	
+	assign o_stat_frames 	= stat_frames;
+	assign o_stat_accepted 	= stat_accepted;
+	assign o_stat_dropped 	= stat_dropped;
+	assign o_stat_bad_fcs 	= stat_bad_fcs;
 						
 	endmodule
 	
