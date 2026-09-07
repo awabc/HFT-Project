@@ -101,12 +101,83 @@ module hft_top #(
 	//          Book         //
 	///////////////////////////
 	
+	wire 		bbo_valid;
+	wire [23:0] bid_quantity;
+	wire [23:0] ask_quantity;
+	wire [31:0] best_bid;
+	wire        best_bid_valid;
+	wire [31:0] best_ask;
+	wire        best_ask_valid;
+	wire 		stat_book_conflict;
+	
+	book book_inst (
+		.i_clk					(clk),
+		.i_rst_n				(rst_n),
+		
+		.i_event_valid			(event_valid),
+		.i_event_marker			(event_marker),
+		.i_locate				(i_locate),
+		
+		.o_valid				(bbo_valid),
+		.o_best_bid 			(best_bid),
+		.o_best_bid_quantity	(bid_quantity),
+		.o_best_bid_valid		(best_bid_valid),
+		
+		.o_best_ask 			(best_ask),
+		.o_best_ask_quantity	(ask_quantity),
+		.o_best_ask_valid		(best_ask_valid),
+		
+		.o_stat_book_conflict	(stat_book_conflict)
+	);
+	
+	assign o_best_bid 			= best_bid;
+	assign o_best_bid_valid 	= best_bid_valid;
+	assign o_best_ask 			= best_ask;
+	assign o_best_ask_valid 	= best_ask_valid;
+	assign o_stat_book_conflict = stat_book_conflict;
+	// 0 Pad output signals to 32 bits
+	assign o_best_bid_quantity 	= {8'd0, bid_quantity};
+	assign o_best_ask_quantity 	= {8'd0, ask_quantity};
+	
 	
 	///////////////////////////
 	//        Strategy       //
 	///////////////////////////
 	
+	wire 		fire;
+	wire [31:0] fire_price;
+	wire [31:0] fire_shares;
+	wire 		fire_is_buy;
+	wire 		armed;
+	wire [31:0]	stat_fires;
 	
+	strategy strategy_inst (
+		.i_clk				(clk),
+		.i_rst_n			(rst_n),
+		
+		.i_bbo_valid		(bbo_valid),
+		.i_best_bid			(best_bid),
+		.i_best_bid_valid	(best_bid_valid),
+		.i_best_ask			(best_ask),
+		.i_best_ask_valid	(best_ask_valid),
+		
+		.i_config_enable	(i_enable),
+		.i_buy_below		(i_buy_below_value),
+		.i_sell_above		(i_sell_above_value),
+		.i_quantity			(i_quantity),
+		.i_arm_pulse		(i_arm),
+		
+		.o_fire				(fire),
+		.o_fire_price		(fire_price),
+		.o_fire_shares		(fire_shares),
+		.o_fire_is_buy		(fire_is_buy),
+		
+		.o_armed			(armed),
+		.o_stat_fires		(stat_fires),
+	);
+	
+	assign o_armed = armed;
+	assign o_stat_fires = stat_fires;
 	
 	
 	///////////////////////////
