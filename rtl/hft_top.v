@@ -184,13 +184,32 @@ module hft_top #(
 	//     Transmit Order    //
 	///////////////////////////
 
+	wire [63:0] order_id;
+	wire [31:0] stat_orders;
+	wire 		stat_overrun;
 
+	order_tx order_tx_inst (
+		.i_clk 				(clk),
+		.i_rst_n			(rst_n),
+		
+		.i_fire				(fire),
+		.i_fire_price		(fire_price),
+		.i_fire_shares		(fire_shares),
+		.i_fire_is_buy		(fire_is_buy),
+		
+		.o_tdata			(tx_tdata),
+		.o_tkeep			(tx_tkeep),
+		.o_tvalid			(tx_tvalid),
+		.o_tlast			(tx_tlast),
+		.i_tready			(tx_tready),
+		
+		.o_order_id			(order_id),
+		.o_stat_orders		(stat_orders),
+		.o_stat_overrun		(stat_overrun),
+	);
 
-
-
-
-
-
+	assign o_stat_orders = stat_orders;
+	assign o_stat_overrun = stat_overrun;
 
 
 endmodule
