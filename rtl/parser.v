@@ -239,9 +239,12 @@ module parser #(
 					// 				 [88]  		is_buy, valid for ITCH_ADD_ORDER
 					// 			     [112:89] 	added/executed/cancelled quantity of shares
 					// 				 [144:113] 	price, valid for ITCH_ADD_ORDER
-					event_marker 	<=  m_type | m_locate << 8 | m_ref << 24 | (m_side == SIDE_BUY) << 88
-									| ((m_type == ITCH_ADD_ORDER) ? sat_qty(m_shr_a) : (m_type == ITCH_DELETE) ? 24'd0 : sat_qty(m_shr_ex)) << 89
-									| ((m_type == ITCH_ADD_ORDER) ? m_price : 32'd0) << 113;
+					event_marker[7:0] 		<= m_type;
+					event_marker[23:8] 		<= m_locate;
+					event_marker[87:24] 	<= m_ref;
+					event_marker[88] 		<= m_side == SIDE_BUY;
+					event_marker[112:89] 	<= (m_type == ITCH_ADD_ORDER) ? sat_qty(m_shr_a) : (m_type == ITCH_DELETE) ? 24'd0 : sat_qty(m_shr_ex);
+					event_marker[144:113] 	<= (m_type == ITCH_ADD_ORDER) ? m_price : 32'd0;
 					
 					event_sequence  <= mold_seq_d1;
 				end
