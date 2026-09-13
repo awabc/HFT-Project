@@ -4,7 +4,7 @@ module strategy (
 	input 			i_clk,
 	input 			i_rst_n,
 	
-	input 			i_bbo_valid;
+	input 			i_bbo_valid,
 	input [31:0] 	i_best_bid,
 	input 			i_best_bid_valid,
 	input [31:0] 	i_best_ask,
@@ -31,7 +31,7 @@ module strategy (
 	reg  			fire;
 	reg  [31:0] 	fire_price;
 	reg  [31:0] 	fire_shares;
-	reg  [31:0] 	fire_is_buy;
+	reg  		 	fire_is_buy;
 	reg  [31:0] 	stat_fires;
 	
 	assign buy_order  = i_bbo_valid && i_config_enable && armed && i_best_ask_valid && (i_best_ask <= i_buy_below);
@@ -50,6 +50,8 @@ module strategy (
 			
 			if (i_arm_pulse) begin
 				armed 	<= 1'b1;
+			end else begin
+				armed <= armed;
 			end
 			
 			// Take the order, if both qualify then hit the bid
@@ -67,6 +69,12 @@ module strategy (
 				fire_is_buy <= 1'b0;
 				armed 		<= 1'b0;
 				stat_fires 	<= stat_fires + 1'b1;
+			end else begin
+				fire 		<= 1'b0;
+				fire_price 	<= 32'd0;
+				fire_shares <= 32'd0;
+				stat_fires 	<= stat_fires;
+				fire_is_buy <= 1'b0;
 			end
 		end
 	end
@@ -81,20 +89,4 @@ module strategy (
 	assign o_stat_fires 	= stat_fires;
 
 endmodule
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	

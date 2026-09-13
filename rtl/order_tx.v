@@ -5,7 +5,7 @@ module order_tx (
 	
 	input 			i_fire,
 	input [31:0] 	i_fire_price,
-	input [31:0] 	i_fire_shares
+	input [31:0] 	i_fire_shares,
 	input 			i_fire_is_buy,
 	
 	// Simulated AXI output
@@ -21,7 +21,6 @@ module order_tx (
 );
 	
 	localparam ORDER_BYTES = 64;
-	localparam PAYLOAD_BYTES = ORDER_BYTES - 42;
 	
 	// Offsets
 	localparam OFF_ETH_DST 		= 0;
@@ -56,13 +55,15 @@ module order_tx (
 	wire [7:0]  IP_PROTO_UDP   	= 8'd17;
 	
 	// Logic wires/regs
-	reg [7:0] 		tpl [0:ORDER_BYTES-1];
+	//reg [7:0] 		tpl [0:ORDER_BYTES-1];
 	reg [31:0] 		checksum_accumulate;
 	reg [31:0] 		checksum_f1;
 	reg [15:0] 		ip_checksum;
-	reg [511:0] 	tpl_beat;
+	//reg [511:0] 	tpl_beat;
 	reg [511:0] 	patched;
 	reg [63:0] 		order_id;
+	
+	wire [511:0] 	base_beat;
 	
 	wire 			tx_hs;
 	
@@ -87,13 +88,51 @@ module order_tx (
 		begin
 			r = d;
 			for (j = 0; j < n; j = j + 1) begin
-				r[8(off+j) +: 8] = v[8(n-1-j) +: 8];
+				r[8*(off+j) +: 8] = v[8*(n-1-j) +: 8];
 			end
 			be_patch = r;
 		end
 	endfunction
 	
+	// Function to generate the static 64-byte base template at elaboration
+	function automatic [511:0] build_base_beat;
+		input dummy;
+		reg [511:0] beat;
+		integer k;
+		begin
+			beat = 512'd0;
+			
+			// Ethernet Header
+			beat[8*0  +: 8] = 8'h00; beat[8*1  +: 8] = 8'h0A; beat[8*2  +: 8] = 8'h35;
+			beat[8*3  +: 8] = 8'h02; beat[8*4  +: 8] = 8'h9D; beat[8*5  +: 8] = 8'hE5; // DST MAC
+			beat[8*6  +: 8] = 8'h00; beat[8*7  +: 8] = 8'h0A; beat[8*8  +: 8] = 8'h35;
+			beat[8*9  +: 8] = 8'h02; beat[8*10 +: 8] = 8'h9D; beat[8*11 +: 8] = 8'hE4; // SRC MAC
+			beat[8*12 +: 8] = 8'h08; beat[8*13 +: 8] = 8'h00;                           // EtherType IPV4
+			
+			// IPv4 Header (20 bytes, offset 14..33)
+			beat[8*14 +: 8] = 8'h45; beat[8*15 +: 8] = 8'h00;                           // IHL / DSCP
+			beat[8*16 +: 8] = 8'h00; beat[8*17 +: 8] = 8'd50;                            // Total Length (50)
+			beat[8*18 +: 8] = 8'h00; beat[8*19 +: 8] = 8'h00;                           // Ident
+			beat[8*20 +: 8] = 8'h40; beat[8*21 +: 8] = 8'h00;                           // Flags (DF)
+			beat[8*22 +: 8] = 8'd64; beat[8*23 +: 8] = 8'd17;                            // TTL (64), Proto (UDP)
+			beat[8*24 +: 8] = 8'hB7; beat[8*25 +: 8] = 8'h4C;                           // Precomputed IP Checksum
+			beat[8*26 +: 8] = 8'd192; beat[8*27 +: 8] = 8'd168; beat[8*28 +: 8] = 8'd1;  beat[8*29 +: 8] = 8'd10; // SRC IP
+			beat[8*30 +: 8] = 8'd192; beat[8*31 +: 8] = 8'd168; beat[8*32 +: 8] = 8'd1;  beat[8*33 +: 8] = 8'd20; // DST IP
+			
+			// UDP Header (8 bytes, offset 34..41)
+			beat[8*34 +: 8] = 16'd41000 >> 8; beat[8*35 +: 8] = 16'd41000 & 8'hFF;     // SRC Port
+			beat[8*36 +: 8] = 16'd41001 >> 8; beat[8*37 +: 8] = 16'd41001 & 8'hFF;     // DST Port
+			beat[8*38 +: 8] = 16'd30 >> 8;    beat[8*39 +: 8] = 16'd30 & 8'hFF;        // UDP Length
+			beat[8*40 +: 8] = 8'h00;          beat[8*41 +: 8] = 8'h00;                  // UDP Checksum (0 = disabled)
+			
+			// UDP Payload Magic: 0x41574142 ("AWAB")
+			beat[8*42 +: 8] = 8'h41; beat[8*43 +: 8] = 8'h57; beat[8*44 +: 8] = 8'h41; beat[8*45 +: 8] = 8'h42;
+
+			build_base_beat = beat;
+		end
+	endfunction
 	
+	/*
 	// Frame template (byte array)
 	always @ (*) begin
 		if (~i_rst_n) begin
@@ -107,6 +146,9 @@ module order_tx (
 			for (i=0; i<ORDER_BYTES; i=i+1) begin
 				tpl[i] = 8'h00;
 			end
+			checksum_accumulate = 32'd0;
+			checksum_f1 		= 32'd0;
+			ip_checksum 		= 16'd0;
 			
 			// Ethernet
 			for (i=0;i<6;i=i+1) begin
@@ -137,7 +179,6 @@ module order_tx (
 			end
 			
 			// IPV4 Header Checksumn
-			checksum_accumulate = 32'd0;
 			for (i=14; i<34; i=i+2) begin
 				checksum_accumulate = checksum_accumulate + {16'd0, tpl[i], tpl[i+1]};
 			end
@@ -163,6 +204,7 @@ module order_tx (
 		end
 	end
 	
+	
 	// Stitch template into one beat
 	always @ (*) begin
 		if (~i_rst_n) begin
@@ -174,13 +216,16 @@ module order_tx (
 			end
 		end
 	end
+	*/
+	
+	assign base_beat  = build_base_beat(1'b0);
 	
 	// Patch live fields
 	always @ (*) begin
 		if (~i_rst_n) begin
 			patched = 512'd0;
 		end else begin
-			patched = tpl_beat;
+			patched = base_beat;
 			patched = be_patch(patched, OFF_ORD_ID, 	8, order_id);
 			patched = be_patch(patched, OFF_ORD_PRICE, 	4, {32'd0, i_fire_price});
 			patched = be_patch(patched, OFF_ORD_SHARES, 4, {32'd0, i_fire_shares});
@@ -191,7 +236,7 @@ module order_tx (
 	// --------------Beat TX---------------
 	assign tx_hs = tvalid & i_tready;
 	
-	always @ posedge(i_clk) begin
+	always @ (posedge i_clk) begin
 		if (~i_rst_n) begin
 			tdata 			<= 512'd0;
 			tkeep 			<= 64'd0;
@@ -201,6 +246,13 @@ module order_tx (
 			stat_orders 	<= 32'd0;
 			stat_overrun 	<= 1'b0;
 		end else begin
+			tdata 		<= 512'd0;
+			tkeep 		<= {64{1'b1}};
+			tvalid 		<= 1'b0;
+			tlast 		<= 1'b0;
+			order_id 	<= order_id;
+			stat_orders <= stat_orders;
+			
 			if (i_fire && !tvalid) begin
 				tdata 		<= patched;
 				tkeep 		<= {64{1'b1}};
@@ -216,6 +268,8 @@ module order_tx (
 			// Latch overrun if a fire arrvies when previous beat is still waiting for tready
 			if (i_fire && tvalid) begin
 				stat_overrun <= 1'b1;
+			end else begin
+				stat_overrun <= stat_overrun;
 			end
 		end
 	end
@@ -231,21 +285,4 @@ module order_tx (
 	assign o_stat_overrun 	= stat_overrun;
 	
 endmodule
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-
-
 	

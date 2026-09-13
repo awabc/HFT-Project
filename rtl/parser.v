@@ -20,11 +20,6 @@ module parser #(
 	// Decoded event
 	output                  		o_event_valid,
 	output [144:0] 					o_event_marker,
-	output [63:0]           		o_event_sequence, // MoldUDP64
-	
-	// Frame 
-	output    						o_rx_hdr_hit, // if there's a pulse on first beat
-	output 							o_rx_frame_bad, // pulse at tlast or error
 	
 	// Stats
 	output [31:0]  					o_stat_frames,
@@ -75,7 +70,7 @@ module parser #(
 		input [31:0]           off,
 		input [31:0]           n
 	);
-		wire [63:0] r;
+		reg [63:0] r;
 		integer i;
 		begin
 			r = 64'd0;
@@ -99,6 +94,7 @@ module parser #(
 	reg  [15:0] 			beat;
 	wire 					curr_beat0;
 	wire 					curr_beat1;
+	wire 					full_beat;
 	
 	wire [15:0] 			ethertype;
 	wire [7:0] 				ip_vihl;
@@ -124,10 +120,7 @@ module parser #(
 	
 	reg  					event_valid;
 	reg [144:0]				event_marker;
-	reg [63:0] 				event_sequence;
-	reg 					rx_hdr_hit;
 	reg 					rx_frame_bad;
-	reg						in_frame;
 	reg [31:0] 				stat_frames;
 	reg [31:0] 				stat_accepted;
 	reg [31:0] 				stat_dropped;
@@ -185,14 +178,10 @@ module parser #(
 	always @ (posedge i_clk) begin
 		if (~i_rst_n) begin
 			beat 			<= 16'd0;
-			in_frame 		<= 1'b0;
 			hdr_match_d1 	<= 1'b0;
 			mold_seq_d1 	<= 1'b0;
 			event_valid 	<= 1'b0;
 			event_marker 	<= 145'd0;
-			event_sequence 	<= 64'd0;
-			rx_hdr_hit 		<= 1'b0;
-			rx_frame_bad 	<= 1'b0;
 			stat_frames 	<= 32'd0;
 			stat_accepted 	<= 32'd0;
 			stat_bad_fcs 	<= 32'd0;
@@ -200,27 +189,25 @@ module parser #(
 		end else begin
 			
 			event_valid 	<= 1'b1;
-			rx_hdr_hit 		<= 1'b1;
-			rx_frame_bad 	<= 1'b1;
+			
+			beat 		 	<= beat;
+			hdr_match_d1 	<= hdr_match;
+			mold_seq_d1  	<= mold_seq;
+			event_marker 	<= event_marker;
 			
 			if (i_data_valid) begin
 				
 				// count beats
 				if (i_last) begin
 					beat 	 <= 16'd0;
-					in_frame <= 1'b0;
 				end else begin
 					beat 	 <= beat + 1'b1;
-					in_frame <= 1'b1;
 				end
 				
 				// beat 0
 				if (curr_beat0) begin
 					
 					stat_frames  <= stat_frames + 1'b1;
-					hdr_match_d1 <= hdr_match;
-					rx_hdr_hit   <= hdr_match;
-					mold_seq_d1  <= mold_seq;
 					
 					if (hdr_match) begin
 						stat_accepted <= stat_accepted + 1'b1;
@@ -246,18 +233,20 @@ module parser #(
 					event_marker[112:89] 	<= (m_type == ITCH_ADD_ORDER) ? sat_qty(m_shr_a) : (m_type == ITCH_DELETE) ? 24'd0 : sat_qty(m_shr_ex);
 					event_marker[144:113] 	<= (m_type == ITCH_ADD_ORDER) ? m_price : 32'd0;
 					
-					event_sequence  <= mold_seq_d1;
 				end
 				
 				if (i_last) begin
 					hdr_match_d1 	 <= 1'b0;
 					
 					if (i_error) begin
-						rx_frame_bad <= 1'b1;
 						stat_bad_fcs <= stat_bad_fcs + 1'b1;
 					end
 				end
 			end
+			stat_frames 	<= stat_frames;
+			stat_accepted 	<= stat_accepted;
+			stat_bad_fcs 	<= stat_bad_fcs;
+			stat_dropped 	<= stat_dropped;
 		end
 	end
 	
@@ -266,72 +255,11 @@ module parser #(
 	// Assign outputs
 	assign o_event_valid 	= event_valid;
 	assign o_event_marker 	= event_marker;
-	assign o_event_sequence = event_sequence;
-	
-	assign o_rx_hdr_hit 	= rx_hdr_hit;
-	assign o_rx_frame_bad 	= rx_frame_bad;
-	
+
 	assign o_stat_frames 	= stat_frames;
 	assign o_stat_accepted 	= stat_accepted;
 	assign o_stat_dropped 	= stat_dropped;
 	assign o_stat_bad_fcs 	= stat_bad_fcs;
 						
 	endmodule
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	

@@ -47,7 +47,8 @@ module hft_top #(
 	output [31:0] 				o_stat_fires,
 	output [31:0] 				o_stat_orders,
 	output 						o_stat_overrun,
-	output 						o_stat_book_conflict
+	output 						o_stat_book_conflict,
+	output [63:0] 				o_order_id
 
 );
 
@@ -58,9 +59,6 @@ module hft_top #(
 	
 	wire 			event_valid;
 	wire [144:0] 	event_marker;
-	wire [63:0] 	event_sequence;
-	wire 			rx_hdr_hit;
-	wire 			rx_frame_bad;
 	wire [31:0]		stat_frames;
 	wire [31:0] 	stat_accepted;
 	wire [31:0]		stat_bad_fcs;
@@ -80,10 +78,6 @@ module hft_top #(
 		
 		.o_event_valid		(event_valid),
 		.o_event_marker		(event_marker),
-		.o_event_sequence   (event_sequence),
-		
-		.o_rx_hdr_hit		(rx_hdr_hit),
-		.o_rx_frame_bad		(rx_frame_bad),
 		
 		.o_stat_frames		(stat_frames),
 		.o_stat_accepted	(stat_accepted),
@@ -173,7 +167,7 @@ module hft_top #(
 		.o_fire_is_buy		(fire_is_buy),
 		
 		.o_armed			(armed),
-		.o_stat_fires		(stat_fires),
+		.o_stat_fires		(stat_fires)
 	);
 	
 	assign o_armed = armed;
@@ -205,34 +199,12 @@ module hft_top #(
 		
 		.o_order_id			(order_id),
 		.o_stat_orders		(stat_orders),
-		.o_stat_overrun		(stat_overrun),
+		.o_stat_overrun		(stat_overrun)
 	);
 
 	assign o_stat_orders = stat_orders;
 	assign o_stat_overrun = stat_overrun;
+	assign o_order_id = order_id;
 
 
 endmodule
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
