@@ -115,14 +115,14 @@ SERDES on each side, at 125 MHz):
 | Fmax | ~136 MHz |
 | Total power | 73.7 mW (49.9 mW internal, 23.8 mW switching, 227 nW leakage)|
 | Die area | 1200 µm x 1200 µm (1.44 mm²) |
-| Core utilization | 20% |
+| Core utilization | 40% |
 | DRC violations | 0 |
 | Timing violations | 0 |
 | Tick-to-trade latency | 21 cycles ≈ **168 ns** |
 | Peak throughput, per direction | 32 bits/cycle × 125 MHz ≈ **4.00 Gb/s** (~500 MB/s) |
 
 <p align="center">
-  <img src="screenshots/run1.png" alt="GDS Layout from Run 1 (KLayout)" width="500" />
+  <img src="screenshots/run2.png" alt="GDS Layout from Run 2 (KLayout)" width="500" />
   <br>
-  <sub>GDS Layout from Run 1 (KLayout)</sub>
+  <sub>GDS Layout from Run 2 (KLayout)</sub>
 </p>
