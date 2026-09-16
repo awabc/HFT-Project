@@ -87,5 +87,9 @@ SERDES on each side, at 129 MHz):
 | Tick-to-trade latency | 37 cycles ≈ **287 ns** |
 | Peak throughput, per direction | 32 bits/cycle × 129 MHz ≈ **4.13 Gb/s** (~516 MB/s) |
 
-
+<p align="center">
+  <img src="HFT-Project/screenshots/run1.png" alt="GDS Layout from Run 1 (KLayout)" width="500" />
+  <br>
+  <sub>GDS Layout from Run 1 (KLayout)</sub>
+</p>
 
