@@ -30,7 +30,7 @@ module parser #(
 	
 	// Frame offsets, from byte 0 of eth frame. 
 	// Byte 0 is first destination MAC, since CMAC strips preamble and FCS
-	localparam OFF_ETHERTYPE 	= 2;
+	localparam OFF_ETHERTYPE 	= 12;
 	localparam OFF_IP_VIHL 		= 14;
 	localparam OFF_IP_PROTO 	= 23;
 	localparam OFF_UDP_DPORT 	= 36;
@@ -188,12 +188,9 @@ module parser #(
 			stat_dropped 	<= 32'd0;
 		end else begin
 			
-			event_valid 	<= 1'b1;
-			
-			beat 		 	<= beat;
+			event_valid 	<= 1'b0;
 			hdr_match_d1 	<= hdr_match;
 			mold_seq_d1  	<= mold_seq;
-			event_marker 	<= event_marker;
 			
 			if (i_data_valid) begin
 				
@@ -243,10 +240,6 @@ module parser #(
 					end
 				end
 			end
-			stat_frames 	<= stat_frames;
-			stat_accepted 	<= stat_accepted;
-			stat_bad_fcs 	<= stat_bad_fcs;
-			stat_dropped 	<= stat_dropped;
 		end
 	end
 	

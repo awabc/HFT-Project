@@ -180,6 +180,9 @@ module book #(
 	
 	always @ (posedge i_clk) begin
 		if (!i_rst_n) begin
+			for (i=0; i<DEPTH; i=i+1) begin
+				order_valid[i]  <= 1'b0;
+			end
 			bbo_valid 			<= 1'b0;
 			best_bid 			<= 32'd0;
 			best_bid_quantity 	<= 24'd0;
@@ -204,7 +207,6 @@ module book #(
 			e_shares_d1 		<= 24'd0;
 		end else begin
 			bbo_valid <= 1'b0;
-			stat_book_conflict <= stat_book_conflict; // sticky;
 			
 			// Pipeline stage
 			pending 		<= is_delete | is_red;
@@ -230,12 +232,6 @@ module book #(
 			qa_ask_set 	<= 1'b0;
 			qa_ask_add 	<= 1'b0;
 			qa_val 		<= shares;
-			
-			// Register every cycle to prevent inferring latches
-			best_bid 		<= best_bid;
-			best_bid_valid 	<= best_bid_valid;
-			best_ask 		<= best_ask;
-			best_ask_valid 	<= best_ask_valid;
 			
 			if (is_add) begin
 				if (is_buy) begin
@@ -267,16 +263,12 @@ module book #(
 				best_bid_quantity <= qa_val;
 			end else if (qa_bid_add) begin
 				best_bid_quantity <= best_bid_quantity + qa_val;
-			end else begin
-				best_bid_quantity <= best_bid_quantity;
-			end
+			end 
 			if (qa_ask_set) begin
 				best_ask_quantity <= qa_val;
 			end else if (qa_ask_add) begin
 				best_ask_quantity <= best_ask_quantity + qa_val;
-			end else begin
-				best_ask_quantity <= best_ask_quantity;
-			end
+			end 
 			
 			// Apply reduction to book
 			if (proceed) begin

@@ -50,8 +50,6 @@ module strategy (
 			
 			if (i_arm_pulse) begin
 				armed 	<= 1'b1;
-			end else begin
-				armed <= armed;
 			end
 			
 			// Take the order, if both qualify then hit the bid
@@ -73,7 +71,6 @@ module strategy (
 				fire 		<= 1'b0;
 				fire_price 	<= 32'd0;
 				fire_shares <= 32'd0;
-				stat_fires 	<= stat_fires;
 				fire_is_buy <= 1'b0;
 			end
 		end
