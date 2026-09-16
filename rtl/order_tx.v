@@ -246,12 +246,6 @@ module order_tx (
 			stat_orders 	<= 32'd0;
 			stat_overrun 	<= 1'b0;
 		end else begin
-			tdata 		<= 512'd0;
-			tkeep 		<= {64{1'b1}};
-			tvalid 		<= 1'b0;
-			tlast 		<= 1'b0;
-			order_id 	<= order_id;
-			stat_orders <= stat_orders;
 			
 			if (i_fire && !tvalid) begin
 				tdata 		<= patched;
@@ -268,8 +262,6 @@ module order_tx (
 			// Latch overrun if a fire arrvies when previous beat is still waiting for tready
 			if (i_fire && tvalid) begin
 				stat_overrun <= 1'b1;
-			end else begin
-				stat_overrun <= stat_overrun;
 			end
 		end
 	end
