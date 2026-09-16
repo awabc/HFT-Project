@@ -2,7 +2,7 @@
 module hft_top #(
     parameter DATA_WIDTH   		= 512,
     parameter BEAT_WIDTH   		= 64,                        // tkeep width: 1 bit per byte of DATA_WIDTH
-    parameter CHUNK_WIDTH  		= 32,                        // width of each external data chunk (ASIC pin budget)
+    parameter CHUNK_WIDTH  		= 64,                        // width of each external data chunk (ASIC pin budget)
     parameter NUM_CHUNKS       = DATA_WIDTH / CHUNK_WIDTH,   // chunks per full beat (16 for 512/32)
     parameter KEEP_CHUNK_WIDTH = BEAT_WIDTH / NUM_CHUNKS     // tkeep bits per chunk (4 for 64/16)
 )(
@@ -10,7 +10,7 @@ module hft_top #(
     input      clk,
     input      rst_n,
 
-    // RX AXI4-Stream, narrowed to 32-bit chunks 
+    // RX AXI4-Stream, narrowed to 64-bit chunks 
     input  [CHUNK_WIDTH-1:0]      	rx_tdata_chunk,
     input  [KEEP_CHUNK_WIDTH-1:0] 	rx_tkeep_chunk,
     input                          	rx_tvalid_chunk,
@@ -18,7 +18,7 @@ module hft_top #(
     input                          	rx_tlast,
     input                          	rx_tuser_error,
 
-    // TX AXI4-Stream, narrowed to 32-bit chuncks (MSB first)
+    // TX AXI4-Stream, narrowed to 64-bit chuncks (MSB first)
     output [CHUNK_WIDTH-1:0]      	tx_tdata_chunk,
     output [KEEP_CHUNK_WIDTH-1:0] 	tx_tkeep_chunk,
     output                          tx_tvalid_chunk,
@@ -60,7 +60,7 @@ module hft_top #(
 
 
 	/////////////////////////////////////////////
-	//  RX de-serializer (32 bit -> 512 bit)   //
+	//  RX de-serializer (64 bit -> 512 bit)   //
 	/////////////////////////////////////////////
 
 	reg [DATA_WIDTH-1:0]      rx_data_word;
@@ -273,7 +273,7 @@ module hft_top #(
 
 
 	////////////////////////////////////////////
-	//   TX serializer (512 bit -> 32 bit)    //
+	//   TX serializer (512 bit -> 64 bit)    //
 	////////////////////////////////////////////
 
 	localparam TX_IDLE = 1'b0;
