@@ -70,7 +70,7 @@ testbench.
 feature more optimizations.**
 
 **Derived pipeline metrics** (5-cycle core latency + 16-cycle RX/TX chunk
-SERDES on each side, at 129 MHz):
+SERDES on each side, at 100 MHz):
 
 | Metric | Run 1 |
 |---|---|
@@ -84,8 +84,8 @@ SERDES on each side, at 129 MHz):
 | Core utilization | 30% |
 | DRC violations | 0 |
 | Timing violations | 0 |
-| Tick-to-trade latency | 37 cycles ≈ **287 ns** |
-| Peak throughput, per direction | 32 bits/cycle × 129 MHz ≈ **4.13 Gb/s** (~516 MB/s) |
+| Tick-to-trade latency | 37 cycles ≈ **370 ns** |
+| Peak throughput, per direction | 32 bits/cycle × 100 MHz ≈ **3.20 Gb/s** (~400 MB/s) |
 
 <p align="center">
   <img src="screenshots/run1.png" alt="GDS Layout from Run 1 (KLayout)" width="500" />
@@ -93,3 +93,36 @@ SERDES on each side, at 129 MHz):
   <sub>GDS Layout from Run 1 (KLayout)</sub>
 </p>
 
+## Results (Run 2)
+
+**Changes made for run 2:**
+- Decreased target clock period to 8 ns (125 MHz)
+- Reduced die area to 1.2 x 1.2 mm to reduce interconnect length
+- Increased utilization to 40%
+- Increased targeted interconnect density to 45%
+- Changed AXI serialization factor to 64 bits instead of 32
+- Fixed some small bugs
+
+**Derived pipeline metrics** (5-cycle core latency + 8-cycle RX/TX chunk
+SERDES on each side, at 125 MHz):
+
+| Metric | Run 2 |
+|---|---|
+| Technology | SkyWater 130nm (open PDK) |
+| Flow | OpenLane |
+| Target clock period | 8 ns (125 MHz constraint) |
+| Worst slack | +0.63 ns |
+| Fmax | ~136 MHz |
+| Total power | 73.7 mW (49.9 mW internal, 23.8 mW switching, 227 nW leakage)|
+| Die area | 1200 µm x 1200 µm (1.44 mm²) |
+| Core utilization | 20% |
+| DRC violations | 0 |
+| Timing violations | 0 |
+| Tick-to-trade latency | 21 cycles ≈ **168 ns** |
+| Peak throughput, per direction | 32 bits/cycle × 125 MHz ≈ **4.00 Gb/s** (~500 MB/s) |
+
+<p align="center">
+  <img src="screenshots/run1.png" alt="GDS Layout from Run 1 (KLayout)" width="500" />
+  <br>
+  <sub>GDS Layout from Run 1 (KLayout)</sub>
+</p>
