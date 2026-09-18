@@ -21,11 +21,10 @@ make clean
 ## Layout
 
 ```
-verif/
+tb/
 ├── Makefile              build + run driver, suite-level pass/fail
-├── common/
-│   ├── tb_defs.vh        check macros, pass/fail counters, watchdog
-│   └── itch_frame.vh     Verilog frame + ITCH message builder
+|-- tb_defs.vh            check macros, pass/fail counters, watchdog
+│-- itch_frame.vh         Verilog frame + ITCH message builder
 ├── tb_parser.v           unit: header filtering, ITCH decode, stats
 ├── tb_book.v             unit: BBO tracking, reductions, conflicts
 ├── tb_strategy.v         unit: arm/fire logic and every guard condition
@@ -33,9 +32,8 @@ verif/
 ├── tb_serdes.v           the 64-bit chunk SERDES at the top boundary
 ├── tb_hft_top.v          integration: frame in -> order packet out
 ├── tb_regression.v       randomized regression vs the Python model
-├── py/
-│   ├── itch_model.py     frame builder + behavioural golden model
-│   └── gen_vectors.py    constrained-random stimulus generator
+│-- itch_model.py         frame builder + behavioural golden model
+│-- gen_vectors.py        constrained-random stimulus generator
 └── vectors/              generated, not checked in
 ```
 
