@@ -48,6 +48,7 @@ flowchart LR
 .
 ├── config.json      # OpenLane hardening configuration for the current run
 ├── rtl/             # Verilog sources: hft_top, parser, book, strategy, order_tx
+├── tb/		     # Testbenche suite and regression tests used for verification
 ├── reports/         # Synthesis / STA / place-and-route reports (per run)
 └── README.md
 ```
