@@ -119,7 +119,7 @@ SERDES on each side, at 125 MHz):
 | DRC violations | 0 |
 | Timing violations | 0 |
 | Tick-to-trade latency | 21 cycles ≈ **168 ns** |
-| Peak throughput, per direction | 32 bits/cycle × 125 MHz ≈ **4.00 Gb/s** (~500 MB/s) |
+| Peak throughput, per direction | 64 bits/cycle × 125 MHz ≈ **8.00 Gb/s** (~1.00 Gb/s) |
 
 <p align="center">
   <img src="screenshots/run2.png" alt="GDS Layout from Run 2 (KLayout)" width="500" />
